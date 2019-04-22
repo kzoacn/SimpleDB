@@ -1,0 +1,4 @@
+1. I think there are no design decisions.
+2. None
+3. None
+4. 4h. I think "BufferPool" is confusing, as we know, buffer is different from cache. But "BufferPool" is actually a cache.
