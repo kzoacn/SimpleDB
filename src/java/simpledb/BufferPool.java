@@ -4,6 +4,12 @@ import static org.junit.Assert.fail;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.NoSuchElementException;
+import java.util.TreeMap;
+
+import com.sun.media.sound.RIFFInvalidDataException;
 
 import sun.management.counter.Variability;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -36,7 +42,7 @@ public class BufferPool {
      *
      * @param numPages maximum number of pages in this buffer pool.
      */
-    ArrayList<Page> buffer;
+    HashMap<PageId, Page> buffer;
     private int numPages;
     int currentId;
     long fileSize;
@@ -70,7 +76,7 @@ public class BufferPool {
     	raf.close();
     }*/
     public BufferPool(int numPages) {
-        buffer=new ArrayList<Page>();
+        buffer=new HashMap<PageId, Page>();
         this.numPages=numPages;
         this.currentId=0;
     }
@@ -105,23 +111,29 @@ public class BufferPool {
      * @param perm the requested permissions on the page
      */
     private void addPage(Page page) {
-    	if(buffer.size()>=numPages) {
-    		try {
-				evictPage();
-			} catch (DbException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+    	if(buffer.containsKey(page.getId())) {
+    		buffer.remove(page.getId());
+    		buffer.put(page.getId(),page);
+    	}else {
+        	if(buffer.size()>=numPages) {
+        		try {
+    				evictPage();
+    			} catch (DbException e) {
+    				// TODO Auto-generated catch block
+    				e.printStackTrace();
+    			}
+        	}
+        	buffer.put(page.getId(),page);
     	}
-		buffer.add(page);
+    	
 	}
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        for(Page page : buffer) {
-             if(page.getId().equals(pid))
-            	 return page;
-          }
+        if(buffer.containsKey(pid))
+        	return buffer.get(pid);
     	  Page page=Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+    	  if(perm==Permissions.READ_WRITE)
+    		  page.markDirty(true, tid);
     	  addPage(page);
       
         
@@ -197,8 +209,11 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
-        throw new NotImplementedException();
-
+    	ArrayList<Page> arrayList=Database.getCatalog().getDatabaseFile(tableId).insertTuple(tid, t);
+    	for(Page page:arrayList) {
+    		page.markDirty(true, tid);
+    		addPage(page);
+    	}
     }
 
     /**
@@ -218,22 +233,12 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
-    	for(Page page:buffer) {
-    		if(page instanceof HeapPage) {
-        		throw new NotImplementedException();
-    		}
-    		if(page instanceof BTreeLeafPage) {
-    			BTreeLeafPage bTreePage=(BTreeLeafPage)page;
-    			RecordId rid = t.getRecordId();
-    			if((rid.getPageId().pageNumber() != page.getId().pageNumber()) 
-    					|| (rid.getPageId().getTableId() != page.getId().getTableId()))
-    				continue;
-    			if (!bTreePage.isSlotUsed(rid.tupleno()))
-    				continue;
-    			bTreePage.deleteTuple(t);
-    		}
+    	
+    	ArrayList<Page> arrayList=Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId()).deleteTuple(tid, t);
+    	for(Page page:arrayList) {
+    		page.markDirty(true, tid);
+    		addPage(page);
     	}
-
     }
 
     /**
@@ -244,7 +249,14 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
-        throw new NotImplementedException();
+    	while(buffer.size()>0) {
+    		try {
+				evictPage();
+			} catch (DbException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
 
     }
 
@@ -259,13 +271,14 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
         // not necessary for lab1
-    	for(Page page : buffer) {
-    		if(page.getId().equals(pid)){
-    	       		
-    			buffer.remove(page);
-    			break;
-    		}
-    	}
+    	try {
+			flushPage(buffer.values().iterator().next().getId());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	buffer.remove(pid);
     }
 
     /**
@@ -275,7 +288,8 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
-        throw new NotImplementedException();
+    	if(buffer.get(pid).isDirty()!=null)
+    		Database.getCatalog().getDatabaseFile(pid.getTableId()).writePage(buffer.get(pid));
 
     }
 
@@ -295,7 +309,8 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         if(buffer.isEmpty())
         	throw new DbException("evict");
-    	buffer.remove(0);
+      
+      discardPage(buffer.values().iterator().next().getId());
     }
 
 }

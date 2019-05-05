@@ -639,7 +639,7 @@ public class BTreeFile implements DbFile {
 	 * 
 	 * @throws DbException
 	 */
-	private void clearPage(BTreeLeafPage page) throws DbException {
+	private void myClearPage(BTreeLeafPage page) throws DbException {
 		ArrayList<Tuple> tuples=new ArrayList<Tuple>();
 		Iterator<Tuple> iterator;
 		iterator=page.iterator();
@@ -672,8 +672,8 @@ public class BTreeFile implements DbFile {
 			while(iterator.hasNext())
 				tuples.add(iterator.next());
 		}
-		clearPage(page);
-		clearPage(sibling);
+		myClearPage(page);
+		myClearPage(sibling);
 		Tuple key=tuples.get(tuples.size()/2-1);
 		if(isRightSibling) {
 			for(int i=0;i<tuples.size()/2;i++)
@@ -870,8 +870,9 @@ public class BTreeFile implements DbFile {
 		Iterator<Tuple> iterator=rightPage.iterator();
 		while(iterator.hasNext())
 			tuples.add(iterator.next());
-		clearPage(rightPage);
 		setEmptyPage(tid, dirtypages, rightPage.getId().pageNumber());
+		myClearPage(rightPage);
+		
 		for(Tuple tuple:tuples)
 			leftPage.insertTuple(tuple);
 		leftPage.setRightSiblingId(rightPage.getRightSiblingId());
@@ -920,8 +921,9 @@ public class BTreeFile implements DbFile {
 		BTreeEntry left=leftPage.reverseIterator().next();
 		BTreeEntry right=rightPage.iterator().next();
 		BTreeEntry middle=new BTreeEntry(parentEntry.getKey(),left.getRightChild(),right.getLeftChild());
-		clearPage(rightPage);
+
 		setEmptyPage(tid, dirtypages, rightPage.getId().pageNumber());
+		clearPage(rightPage);
 		leftPage.insertEntry(middle);
 		for(BTreeEntry entry:entries)
 			leftPage.insertEntry(entry);
