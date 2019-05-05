@@ -87,29 +87,17 @@ public class HeapFile implements DbFile {
 		}
         return null;
     }
-    public Page readPageCache(PageId pid) {
-        // some code goes here
-    	Page page;
-		try {
-			page = buffer.getPage(null, pid, null);
-
-	    	if(page==null) {
-	    		page=readPage(pid);
-	    		if(page!=null)
-	    			buffer.addPage(page);
-	    	}
-	    	return page;
-	    	
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-        return null;
-    }
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
         // some code goes here
-        // not necessary for lab1
+    		PageId pid=page.getId();
+      	   RandomAccessFile raf=new RandomAccessFile(f, "w");
+      	    byte[] data=page.getPageData();
+      	    raf.seek(pid.pageNumber()*BufferPool.getPageSize());
+     	    raf.write(data);
+      	    raf.close();
+     	
     }
 
     /**
@@ -132,17 +120,14 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+      throw new NotImplementedException();
+    	// not necessary for lab1
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+        throw new NotImplementedException();
     }
 
     // see DbFile.java for javadocs
@@ -158,9 +143,7 @@ public class HeapFile implements DbFile {
     		this.hf=hf;
     		this.pid=new HeapPageId(getId(), 0);
     		this.tid=tid;
-    		buffer=new BufferPool(BufferPool.DEFAULT_PAGES);
-    		buffer.setFile(hf.f);
-    		buffer.setTableId(hf.getId());
+    		buffer=Database.getBufferPool();
     		opened=false;
     	}
 		public void open() throws DbException, TransactionAbortedException {
@@ -176,11 +159,16 @@ public class HeapFile implements DbFile {
 				if(pid.pageNumber()>=numPages())
 					return false;
 				
-				HeapPage page =(HeapPage)readPageCache(pid);
-				if(page==null)
-					return false;
-				iterator=page.iterator();
-				pid=new HeapPageId(pid.getTableId(), pid.pageNumber()+1);
+				HeapPage page;
+				try {
+					page = (HeapPage)buffer.getPage(null, pid, null);
+					if(page==null)
+						return false;
+					iterator=page.iterator();
+					pid=new HeapPageId(pid.getTableId(), pid.pageNumber()+1);
+				} catch (Exception e) {
+				
+				}
 			}
 			return true;
 		}
