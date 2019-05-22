@@ -92,7 +92,7 @@ public class HeapFile implements DbFile {
     public void writePage(Page page) throws IOException {
         // some code goes here
     		PageId pid=page.getId();
-      	   RandomAccessFile raf=new RandomAccessFile(f, "w");
+      	   RandomAccessFile raf=new RandomAccessFile(f, "rw");
       	    byte[] data=page.getPageData();
       	    raf.seek(pid.pageNumber()*BufferPool.getPageSize());
      	    raf.write(data);
@@ -120,14 +120,34 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-      throw new NotImplementedException();
-    	// not necessary for lab1
+    	ArrayList<Page> dirtyPages = new ArrayList<Page>();
+        int tableId = getId();
+        for (int i = 0, n = numPages(); i < n; i++) {
+            HeapPageId pid = new HeapPageId(tableId, i);
+            HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+            if (page.getNumEmptySlots() != 0) {
+                page.insertTuple(t);
+                dirtyPages.add(page);
+                return dirtyPages;
+            }
+        }
+        HeapPageId pid = new HeapPageId(this.getId(), this.numPages());
+        HeapPage page = new HeapPage(pid, HeapPage.createEmptyPageData());
+        page.insertTuple(t);
+        dirtyPages.add(page);
+        writePage(page);
+        return dirtyPages;
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        throw new NotImplementedException();
+    	ArrayList<Page> dirtyPages = new ArrayList<Page>();
+        HeapPage page=(HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
+    	
+        page.deleteTuple(t);
+        dirtyPages.add(page);
+        return dirtyPages;
     }
 
     // see DbFile.java for javadocs

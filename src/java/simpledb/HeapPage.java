@@ -2,6 +2,7 @@ package simpledb;
 
 import java.util.*;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.*;
 
@@ -245,6 +246,15 @@ public class HeapPage implements Page {
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        if (t.getRecordId().getPageId().equals(pid)) {
+            if (isSlotUsed(t.getRecordId().tupleno())) {
+                markSlotUsed(t.getRecordId().tupleno(), false);
+            } else {
+                throw new DbException("already empty");
+            }
+        } else {
+            throw new DbException("");
+        }
     }
 
     /**
@@ -257,15 +267,33 @@ public class HeapPage implements Page {
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+    	if(getNumEmptySlots()==0) {
+    		throw new DbException("full");
+    	}else {
+    		for(int i=0;i<numSlots;i++) {
+    			if(isSlotUsed(i))
+    				continue;
+    			markSlotUsed(i, true);
+    			t.setRecordId(new RecordId(pid, i));
+    			tuples[i]=t;
+    			break;
+    		}
+    	}
     }
 
     /**
      * Marks this page as dirty/not dirty and record that transaction
      * that did the dirtying
      */
+    TransactionId dirtyid;
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
 	// not necessary for lab1
+    	if(dirty) {
+    		dirtyid=tid;
+    	}else {
+    		dirtyid=null;
+    	}
     }
 
     /**
@@ -274,24 +302,18 @@ public class HeapPage implements Page {
     public TransactionId isDirty() {
         // some code goes here
 	// Not necessary for lab1
-        return null;      
+    	return dirtyid;
     }
 
     /**
      * Returns the number of empty slots on this page.
      */
-     private int numOnes(byte b) {
-    	 int ans=0;
-    	 for(byte i=0;i<8;i++)
-    		 if((b>>i&1)==1)
-    			 ans++;
-    	 return ans;
-     }
     public int getNumEmptySlots() {
         // some code goes here
     	int ans=numSlots;
-    	for(int i=0;i<header.length;i++)
-    		ans-=numOnes(header[i]);
+    	for(int i=0;i<numSlots;i++)
+    		if(isSlotUsed(i))
+    			ans--;
     	return ans;
     }
 
@@ -299,7 +321,7 @@ public class HeapPage implements Page {
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-        return (header[i/8]>>(i%8)&1)==1;
+        return (header[i / 8] & (1 << (i % 8))) != 0;
     }
 
     /**
@@ -308,6 +330,11 @@ public class HeapPage implements Page {
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
+        if (value) {
+            header[i / 8] |= 1 << (i % 8);
+        } else {
+            header[i / 8] &= ((1 << 8) - 1) ^ (1 << (i % 8));
+        }
     }
 
     /**
