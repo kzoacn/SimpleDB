@@ -32,7 +32,14 @@ public class Tuple implements Serializable {
     	for(int i=0;i<td.numFields();i++)
     		fields.add(null);
     }
-
+    public static Tuple merge(Tuple t1,Tuple t2) {
+    	Tuple tuple=new Tuple(TupleDesc.merge(t1.getTupleDesc(), t2.getTupleDesc()));
+    	for(int i=0;i<t1.getTupleDesc().numFields();i++)
+    		tuple.setField(i, t1.getField(i));
+    	for(int i=0;i<t2.getTupleDesc().numFields();i++)
+    		tuple.setField(i+t1.getTupleDesc().numFields(), t2.getField(i));
+    	return tuple;
+    }
     /**
      * @return The TupleDesc representing the schema of this tuple.
      */
@@ -90,7 +97,13 @@ public class Tuple implements Serializable {
      */
     public String toString() {
         // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+    	String ans="";
+    	ans=getField(0).toString();
+    	for(int i=1;i<getTupleDesc().numFields();i++) {
+    		ans+="\t";
+    		ans+=getField(i);
+    	}
+    	return ans;
     }
 
     /**

@@ -126,7 +126,7 @@ public class HashEquiJoinTest extends SimpleDbTestBase {
    * Unit test for Join.getNext() using an = predicate
    */
   @Test public void bigJoin() throws Exception {
-      validateJoin(1,30001,1,10);
+	  validateJoin(1,30001,1,10);
       validateJoin(1,10,1,30001);
   }
 
