@@ -35,9 +35,9 @@ public class Aggregate extends Operator {
     public Aggregate(DbIterator child, int afield, int gfield, Aggregator.Op aop) {
     	
     	if(child.getTupleDesc().getFieldType(afield).equals(Type.INT_TYPE)) {
-    		aggregator=new IntegerAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+    		aggregator=new IntegerAggregator(gfield, gfield==-1?null:child.getTupleDesc().getFieldType(gfield), afield, aop);
     	}else {
-    		aggregator=new StringAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+    		aggregator=new StringAggregator(gfield, gfield==-1?null:child.getTupleDesc().getFieldType(gfield), afield, aop);
     	}
 	// some code goes here
     	this.child=child;

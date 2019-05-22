@@ -1,5 +1,8 @@
 package simpledb;
 
+import java.io.IOException;
+import java.util.NoSuchElementException;
+
 /**
  * Inserts tuples read from the child operator into the tableId specified in the
  * constructor
@@ -21,26 +24,37 @@ public class Insert extends Operator {
      *             if TupleDesc of child differs from table into which we are to
      *             insert.
      */
+    TransactionId t;DbIterator child; int tableId;
+    boolean fetch;
     public Insert(TransactionId t,DbIterator child, int tableId)
             throws DbException {
         // some code goes here
+    	this.t=t;
+    	this.child=child;
+    	this.tableId=tableId;
+    	fetch=false;
     }
 
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        return new TupleDesc(new Type[] {Type.INT_TYPE});
     }
 
     public void open() throws DbException, TransactionAbortedException {
         // some code goes here
+    	super.open();
+    	child.open();
     }
 
     public void close() {
         // some code goes here
+    	super.close();
+    	child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
+    	child.rewind();
     }
 
     /**
@@ -58,7 +72,22 @@ public class Insert extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+    	if(fetch)
+    		return null;
+    	fetch=true;
+    	int cnt=0;
+    	while(child.hasNext()) {
+    		try {
+    			cnt++;
+				Database.getBufferPool().insertTuple(t, tableId, child.next());
+			} catch (Exception e) {
+				throw new DbException("");
+			}
+    	}
+
+        Tuple tuple = new Tuple(new TupleDesc(new Type[] {Type.INT_TYPE}));
+        tuple.setField(0, new IntField(cnt));
+        return tuple;
     }
 
     @Override
