@@ -4,7 +4,7 @@
 	<classpathentry kind="src" output="bin/test" path="test"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/junit-4.5.jar"/>
-	<classpathentry kind="lib" path="/home/kzoacn/database/acmdb-lab1/lib/jline-0.9.94.jar"/>
-	<classpathentry kind="lib" path="/home/kzoacn/database/acmdb-lab1/lib/zql.jar"/>
+	<classpathentry kind="lib" path="acmdb-lab2-supplement/lib/jline-0.9.94.jar"/>
+	<classpathentry kind="lib" path="acmdb-lab2-supplement/lib/zql.jar"/>
 	<classpathentry kind="output" path="bin/src"/>
 </classpath>
