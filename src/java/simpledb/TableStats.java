@@ -1,5 +1,6 @@
 package simpledb;
 
+import java.sql.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -65,7 +66,14 @@ public class TableStats {
      * histograms.
      */
     static final int NUM_HIST_BINS = 100;
-
+    
+    
+    int tableid;
+    int ioCostPerPage;
+    boolean[] isInt;
+    IntHistogram[] intHistograms;
+    StringHistogram[] stringHistograms;
+    int tupleNum;
     /**
      * Create a new TableStats object, that keeps track of statistics on each
      * column of a table
@@ -85,6 +93,68 @@ public class TableStats {
         // necessarily have to (for example) do everything
         // in a single scan of the table.
         // some code goes here
+    	this.tableid=tableid;
+    	this.ioCostPerPage=ioCostPerPage;
+    	DbFile file=Database.getCatalog().getDatabaseFile(tableid);
+    	TupleDesc td = file.getTupleDesc();
+        int numFields = td.numFields();
+        isInt = new boolean[numFields];
+        this.intHistograms = new IntHistogram[numFields];
+        this.stringHistograms = new StringHistogram[numFields];
+        int[] min = new int[numFields];
+        int[] max = new int[numFields];
+        for (int i = 0; i < numFields; i++) {
+            if (td.getFieldType(i) == Type.INT_TYPE) {
+                isInt[i] = true;
+                min[i] = Integer.MAX_VALUE;
+                max[i] = Integer.MIN_VALUE;
+            }
+            else
+            	isInt[i] = false;
+        }
+        tupleNum = 0;
+        try {
+            DbFileIterator it = file.iterator(null);
+            it.open();
+            while (it.hasNext()) {
+                Tuple t = it.next();
+                this.tupleNum++;
+                for (int i = 0; i < numFields; i++) {
+                    Field f = t.getField(i);
+                    if (isInt[i]) {
+                        int val = ((IntField)f).getValue();
+                        min[i]=Math.min(min[i], val);
+                        max[i]=Math.max(max[i], val);
+                    }
+                }
+            }
+        } catch(Exception e) {}
+        
+        for (int i = 0; i < numFields; i++) {
+            if (isInt[i])
+                intHistograms[i] = new IntHistogram(NUM_HIST_BINS, min[i], max[i]);    
+            else
+                stringHistograms[i] = new StringHistogram(NUM_HIST_BINS);
+        }
+        try {
+        	DbFileIterator it = file.iterator(null);
+            it.open();
+        	while (it.hasNext()) {
+                Tuple t = it.next();
+                for (int i = 0; i < numFields; i++) {
+                    Field f = t.getField(i);
+                    if (isInt[i]) {
+                        int val = ((IntField)f).getValue();
+                        intHistograms[i].addValue(val);
+                    }
+                    else {
+                        String val = ((StringField)f).getValue();
+                        stringHistograms[i].addValue(val);
+                    }
+                }
+            }
+        } catch(Exception e) {}
+
     }
 
     /**
@@ -101,7 +171,12 @@ public class TableStats {
      */
     public double estimateScanCost() {
         // some code goes here
-        return 0;
+        DbFile file=Database.getCatalog().getDatabaseFile(tableid);
+        if(file instanceof HeapFile)
+        	return 1.0*((HeapFile)file).numPages()*ioCostPerPage;
+        if(file instanceof BTreeFile)
+        	return 1.0*((BTreeFile)file).numPages()*ioCostPerPage;
+        return ioCostPerPage*2.33;
     }
 
     /**
@@ -114,8 +189,7 @@ public class TableStats {
      *         selectivityFactor
      */
     public int estimateTableCardinality(double selectivityFactor) {
-        // some code goes here
-        return 0;
+        return (int)(tupleNum * selectivityFactor);
     }
 
     /**
@@ -148,7 +222,13 @@ public class TableStats {
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
         // some code goes here
-        return 1.0;
+    	if(field<0 || field>=isInt.length)
+    		return 0;
+    	if(isInt[field])
+    		return intHistograms[field].estimateSelectivity(op, ((IntField)constant).getValue());
+    	else
+    		return stringHistograms[field].estimateSelectivity(op, ((StringField)constant).getValue());
+        
     }
 
     /**
@@ -156,7 +236,7 @@ public class TableStats {
      * */
     public int totalTuples() {
         // some code goes here
-        return 0;
+        return tupleNum;
     }
 
 }
