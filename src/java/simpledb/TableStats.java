@@ -113,8 +113,9 @@ public class TableStats {
             	isInt[i] = false;
         }
         tupleNum = 0;
+        TransactionId tid=new TransactionId();
         try {
-            DbFileIterator it = file.iterator(null);
+            DbFileIterator it = file.iterator(tid);
             it.open();
             while (it.hasNext()) {
                 Tuple t = it.next();
@@ -137,7 +138,7 @@ public class TableStats {
                 stringHistograms[i] = new StringHistogram(NUM_HIST_BINS);
         }
         try {
-        	DbFileIterator it = file.iterator(null);
+        	DbFileIterator it = file.iterator(tid);
             it.open();
         	while (it.hasNext()) {
                 Tuple t = it.next();

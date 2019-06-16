@@ -156,17 +156,17 @@ public class JoinOptimizer {
             boolean t2pkey, Map<String, TableStats> stats,
             Map<String, Integer> tableAliasToId) {
         if (joinOp == Predicate.Op.EQUALS) {
+            if(t1pkey && t2pkey)
+            	return Math.min(card1, card2);
             
-        	if(t1pkey && t2pkey)
-        		return Math.min(card1, card2);
-        	if (t1pkey)
+            if (t1pkey)
                 return card2;
             if (t2pkey)
                 return card1;
             return Math.max(card1, card2);
         }
         else
-            return  card1 * card2/10;
+            return  (int)(0.3*card1 * card2);
     }
 
     /**

@@ -196,10 +196,10 @@ public class BTreeFile implements DbFile {
 			Field f) 
 					throws DbException, TransactionAbortedException {
 		// some code goes here
-		try {
+		
 			BTreePageId pageId=pid;
 			while(pageId.pgcateg()!=BTreePageId.LEAF) {
-				Page page =getPage(tid, dirtypages, pageId, perm);
+				Page page =getPage(tid, dirtypages, pageId, Permissions.READ_ONLY);
 				Iterator<BTreeEntry> iterator=((BTreeInternalPage)page).iterator();
 				BTreePageId nextPageId=null;
 				while(iterator.hasNext()) {
@@ -219,9 +219,7 @@ public class BTreeFile implements DbFile {
 				pageId=nextPageId;
 			}
 			return (BTreeLeafPage)getPage(tid, dirtypages, pageId, perm);
-		} catch (Exception e) {
-			throw new DbException("");
-		}
+		
 	}
 	
 	/**

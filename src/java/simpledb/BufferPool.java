@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -48,7 +49,7 @@ public class BufferPool {
      *
      * @param numPages maximum number of pages in this buffer pool.
      */
-    LinkedHashMap<PageId, Page> buffer;
+    ConcurrentHashMap<PageId, Page> buffer;
     private int numPages;
     int currentId;
     long fileSize;
@@ -79,9 +80,11 @@ public class BufferPool {
     	NONE,ONE_READ,ONE_WRITE,MULTI_READ
     }
     class LockManager{
+    	public long last;
 	    private ConcurrentHashMap<TransactionId, ArrayList<Triple> > usedPageMap;
 	    private ConcurrentHashMap<PageId, ArrayList<Triple>> belongMap;
     	public LockManager() {
+    		last=-1;
 			usedPageMap=new ConcurrentHashMap<TransactionId, ArrayList<Triple>>();
 			belongMap=new ConcurrentHashMap<PageId, ArrayList<Triple>>();
 		}
@@ -162,13 +165,28 @@ public class BufferPool {
 	    	
 	    	return false;
 	    }
+	    public synchronized int getLevel(PageId pid) {
+
+	    	ArrayList<Triple> arrayList=getByPid(pid);
+	    	
+	    	int level=100000000;
+	    	for(Triple triple:arrayList) {
+	    		level=Math.min(level, triple.tid.hashCode());
+	    	}
+	    	
+	    	return level;
+	    }	    
     }
     LockManager lockManager;
+    Random random;
     public BufferPool(int numPages) {
-        buffer=new LinkedHashMap<PageId, Page>();
+        buffer=new ConcurrentHashMap<PageId, Page>();
         this.numPages=numPages;
         this.currentId=0;
         this.lockManager=new LockManager();
+        
+        random=new Random();
+        
     }
     
     public static int getPageSize() {
@@ -214,13 +232,21 @@ public class BufferPool {
 	}
     public  synchronized Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-    	
+    	int cnt=0;
     	while(!lockManager.getLock(tid, pid, perm)) {
     		//transactionComplete(tid,false);
     		try {
-				wait(10);
+    			int t=random.nextInt(100)+50;
+				wait(t);
+				cnt+=t;
 			} catch (InterruptedException e) {
 			}
+    		if(cnt>400) {
+    			if(lockManager.getLevel(pid)<tid.hashCode()) {
+    				throw new TransactionAbortedException();
+    			}
+    			
+    		}
     	}
     	
         if(buffer.containsKey(pid))
@@ -283,17 +309,19 @@ public class BufferPool {
         throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
-    	System.err.println("call "+tid+" "+commit);
+    	//System.out.println(tid.myid+" "+commit);
     	ArrayList<Triple> arrayList=(ArrayList<Triple>) lockManager.getByTid(tid).clone();
-    	for(Triple triple:arrayList)
-    		lockManager.removeTriple(triple);
     	if(commit) {
     		flushPages(tid);
+    		lockManager.last=tid.myid;
     	}else {
         	ArrayList<Page> trash=new ArrayList<Page>();
     		for(Page page:buffer.values()) {
         		TransactionId dirtyId=page.isDirty();
-        		if(dirtyId!=null&&dirtyId.equals(tid)) {
+        		Triple triple=lockManager.getTriple(tid, page.getId());
+        		if(triple==null)continue;
+        		if( (dirtyId!=null&&dirtyId.equals(tid))
+        			||  triple.perm.equals(Permissions.READ_WRITE)) {
         			trash.add(page);
         		}
         	}
@@ -301,6 +329,8 @@ public class BufferPool {
         		buffer.remove(page.getId());
         	
     	}
+    	for(Triple triple:arrayList)
+    		lockManager.removeTriple(triple);
     }
 
     /**
@@ -398,9 +428,10 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
-    	if(buffer.get(pid).isDirty()!=null) {
+    	Page page=buffer.get(pid);
+    	if(page!=null&&page.isDirty()!=null) {
     		Database.getCatalog().getDatabaseFile(pid.getTableId()).writePage(buffer.get(pid));
-    		buffer.get(pid).markDirty(false, null);
+    		page.markDirty(false, null);
     	}
     }
 
@@ -429,9 +460,13 @@ public class BufferPool {
       Iterator<Page> iterator= buffer.values().iterator();
       while(iterator.hasNext()) {
     	  Page page=iterator.next();
+//    	  if(lockManager.getPageStatus(page.getId())!=PageStatus.ONE_WRITE) {
+//    		  discardPage(page.getId());
+//    		  return ;
+//    	  }
     	  if(page.isDirty()==null) {
     		  discardPage(page.getId());
-    		  return ;
+   		  return ;
     	  }
       }
       throw new DbException("evict");

@@ -128,12 +128,12 @@ public class BTreeTest extends SimpleDbTestBase {
 		// now insert and delete tuples at the same time
 		System.out.println("Inserting and deleting tuples...");
     	ArrayList<BTreeDeleter> deleteThreads = new ArrayList<BTreeDeleter>();
+
 		for(BTreeInserter thread : insertThreads) {
 			thread.rerun(bf, getRandomTupleData(), insertedTuples);
     		BTreeDeleter bd = startDeleter(bf, insertedTuples);
     		deleteThreads.add(bd);
 		}
-		
 		// wait for all threads to finish
 		waitForInserterThreads(insertThreads);
 		waitForDeleterThreads(deleteThreads);
@@ -179,7 +179,7 @@ public class BTreeTest extends SimpleDbTestBase {
 		// First look for random tuples and make sure we can find them
 		System.out.println("Searching for tuples...");
 		for(int i = 0; i < 10000; i++) {
-			int rand = r.nextInt(insertedTuples.size());
+			int rand = r.nextInt(insertedTuples.size() ) ;
 			ArrayList<Integer> tuple = tuplesList.get(rand);
 			IntField randKey = new IntField(tuple.get(bf.keyField()));
 			IndexPredicate ipred = new IndexPredicate(Op.EQUALS, randKey);
@@ -193,6 +193,7 @@ public class BTreeTest extends SimpleDbTestBase {
 					break;
 				}
 			}
+			//System.err.println(i);
 			assertTrue(found);
 			it.close();
 		}

@@ -171,21 +171,17 @@ public class HeapFile implements DbFile {
 			}
 		}
 
-		boolean moveNext() {
+		boolean moveNext()throws TransactionAbortedException, DbException{
 			while(iterator==null || !iterator.hasNext()) {
 				if(pid.pageNumber()>=numPages())
 					return false;
 				
 				HeapPage page;
-				try {
 					page = (HeapPage)buffer.getPage(tid, pid, Permissions.READ_WRITE);
 					if(page==null)
 						return false;
 					iterator=page.iterator();
 					pid=new HeapPageId(pid.getTableId(), pid.pageNumber()+1);
-				} catch (Exception e) {
-				
-				}
 			}
 			return true;
 		}
@@ -198,12 +194,10 @@ public class HeapFile implements DbFile {
 		public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
 			if(!hasNext())
 				throw new NoSuchElementException();
-			try {
+			
 				moveNext();
 				return iterator.next();
-			} catch (Exception e) {
-				throw new DbException("next failed");
-			}
+			
 		}
 
 		public void rewind() throws DbException, TransactionAbortedException {
