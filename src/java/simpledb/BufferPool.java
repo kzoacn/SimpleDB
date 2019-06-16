@@ -85,19 +85,19 @@ public class BufferPool {
 			usedPageMap=new ConcurrentHashMap<TransactionId, ArrayList<Triple>>();
 			belongMap=new ConcurrentHashMap<PageId, ArrayList<Triple>>();
 		}
-    	ArrayList<Triple> getByPid(PageId pid){
+    	synchronized ArrayList<Triple> getByPid(PageId pid){
     		ArrayList<Triple>arrayList=belongMap.get(pid);
     		if(arrayList==null) 
     			belongMap.put(pid,new ArrayList<Triple>());
     		return belongMap.get(pid);
     	}
-    	ArrayList<Triple> getByTid(TransactionId tid){
+    	synchronized ArrayList<Triple> getByTid(TransactionId tid){
     		ArrayList<Triple>arrayList=usedPageMap.get(tid);
     		if(arrayList==null) 
     			usedPageMap.put(tid,new ArrayList<Triple>());
     		return usedPageMap.get(tid);
     	}
-	    Triple getTriple(TransactionId tid,PageId pid) {
+    	synchronized Triple getTriple(TransactionId tid,PageId pid) {
 	    	ArrayList<Triple>arrayList=getByPid(pid);
 	    	for(Triple triple:arrayList) {
 	    		if(triple.tid.equals(tid))
@@ -105,17 +105,17 @@ public class BufferPool {
 	    	}
 	    	return null;
 	    }
-	    void removeTriple(Triple triple) {
+	    synchronized void removeTriple(Triple triple) {
 	    	getByPid(triple.pid).remove(triple);
 	    	getByTid(triple.tid).remove(triple);
 	    }
-	    void updateTriple(Triple triple) {
+	    synchronized void updateTriple(Triple triple) {
 	    	removeTriple(new Triple(triple.tid, triple.pid, Permissions.READ_ONLY));
 	    	removeTriple(new Triple(triple.tid, triple.pid, Permissions.READ_WRITE));
 	    	getByPid(triple.pid).add(triple);
 	    	getByTid(triple.tid).add(triple);
 	    }
-	    PageStatus getPageStatus(PageId pid) {
+	    synchronized PageStatus getPageStatus(PageId pid) {
 	    	ArrayList<Triple> arrayList=getByPid(pid);
 	    	if(arrayList.size()==1) {
 	    		if(arrayList.get(0).perm.equals(Permissions.READ_ONLY))
@@ -200,18 +200,13 @@ public class BufferPool {
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
-    private void addPage(Page page) {
+    private void addPage(Page page) throws DbException{
     	if(buffer.containsKey(page.getId())) {
     		buffer.remove(page.getId());
     		buffer.put(page.getId(),page);
     	}else {
         	if(buffer.size()>=numPages) {
-        		try {
-    				evictPage();
-    			} catch (DbException e) {
-    				// TODO Auto-generated catch block
-    				e.printStackTrace();
-    			}
+    			evictPage();
         	}
         	buffer.put(page.getId(),page);
     	}
@@ -231,8 +226,8 @@ public class BufferPool {
         if(buffer.containsKey(pid))
         	return buffer.get(pid);
     	  Page page=Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
-    	  if(perm==Permissions.READ_WRITE)
-    		  page.markDirty(true, tid);
+    	  //if(perm==Permissions.READ_WRITE)
+    	  //	  page.markDirty(true, tid);
     	  addPage(page);
       
         
@@ -263,10 +258,10 @@ public class BufferPool {
     
 
     
-    public void transactionComplete(TransactionId tid) throws IOException {
+    public synchronized void transactionComplete(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
-
+    	transactionComplete(tid,true);
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
@@ -284,11 +279,28 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      * @param commit a flag indicating whether we should commit or abort
      */
-    public void transactionComplete(TransactionId tid, boolean commit)
+    public synchronized void transactionComplete(TransactionId tid, boolean commit)
         throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
-
+    	System.err.println("call "+tid+" "+commit);
+    	ArrayList<Triple> arrayList=(ArrayList<Triple>) lockManager.getByTid(tid).clone();
+    	for(Triple triple:arrayList)
+    		lockManager.removeTriple(triple);
+    	if(commit) {
+    		flushPages(tid);
+    	}else {
+        	ArrayList<Page> trash=new ArrayList<Page>();
+    		for(Page page:buffer.values()) {
+        		TransactionId dirtyId=page.isDirty();
+        		if(dirtyId!=null&&dirtyId.equals(tid)) {
+        			trash.add(page);
+        		}
+        	}
+        	for(Page page:trash)
+        		buffer.remove(page.getId());
+        	
+    	}
     }
 
     /**
@@ -350,13 +362,10 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
-    	while(buffer.size()>0) {
-    		try {
-				evictPage();
-			} catch (DbException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+    	
+    	
+    	for(Page page:buffer.values()) {
+    		flushPage(page.getId());
     	}
 
     }
@@ -373,7 +382,7 @@ public class BufferPool {
         // some code goes here
         // not necessary for lab1
     	try {
-			flushPage(buffer.values().iterator().next().getId());
+			flushPage(pid);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -389,9 +398,10 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
-    	if(buffer.get(pid).isDirty()!=null)
+    	if(buffer.get(pid).isDirty()!=null) {
     		Database.getCatalog().getDatabaseFile(pid.getTableId()).writePage(buffer.get(pid));
-
+    		buffer.get(pid).markDirty(false, null);
+    	}
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -399,7 +409,14 @@ public class BufferPool {
     public synchronized  void flushPages(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
-
+    	for(Page page:buffer.values()) {
+    		TransactionId dirtyId=page.isDirty();
+    		if(dirtyId!=null&&dirtyId.equals(tid)) {
+    			PageId pid=page.getId();
+    			page.markDirty(false, tid);
+    			Database.getCatalog().getDatabaseFile(pid.getTableId()).writePage(buffer.get(pid));
+    		}
+    	}	
     }
 
     /**
@@ -414,9 +431,10 @@ public class BufferPool {
     	  Page page=iterator.next();
     	  if(page.isDirty()==null) {
     		  discardPage(page.getId());
+    		  return ;
     	  }
       }
-  		throw new DbException("evict");
+      throw new DbException("evict");
       
     }
 
