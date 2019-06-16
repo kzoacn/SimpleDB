@@ -1,12 +1,9 @@
 package simpledb;
 
-import static org.junit.Assert.assertNotNull;
 
-import java.awt.RadialGradientPaint;
 import java.io.*;
 import java.util.*;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * HeapFile is an implementation of a DbFile that stores a collection of tuples
@@ -181,7 +178,7 @@ public class HeapFile implements DbFile {
 				
 				HeapPage page;
 				try {
-					page = (HeapPage)buffer.getPage(null, pid, null);
+					page = (HeapPage)buffer.getPage(tid, pid, Permissions.READ_WRITE);
 					if(page==null)
 						return false;
 					iterator=page.iterator();

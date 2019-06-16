@@ -1,15 +1,21 @@
 package simpledb;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.NoSuchElementException;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.tools.DocumentationTool.Location;
 
 import com.sun.media.sound.RIFFInvalidDataException;
+import com.sun.swing.internal.plaf.synth.resources.synth;
 
 import sun.management.counter.Variability;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -46,39 +52,123 @@ public class BufferPool {
     private int numPages;
     int currentId;
     long fileSize;
-    
-   /* public boolean hasNext() {
-    	RandomAccessFile raf;
-		try {
-			raf = new RandomAccessFile(f, "r");
-	    	boolean ans=currentId*getPageSize() < raf.length();
-	    	raf.close();
-	    	return ans;
-		} catch (IOException e) {
-			return false;
+    class Triple{
+    	public TransactionId tid;
+    	public PageId pid;
+    	public Permissions perm;
+    	public Triple(TransactionId tid,PageId pid,Permissions perm) {
+    		this.tid=tid;
+    		this.pid=pid;
+    		this.perm=perm;
 		}
+        public int hashCode() {
+        	return (tid.hashCode()<<16)^pid.hashCode();
+        }
+        public boolean equals(Object o)
+        {
+        	if(o==null)return false;
+        	if(o instanceof Triple) {
+        		return tid.equals(((Triple) o).tid) 
+            			&& pid.equals(((Triple) o).pid) 
+            			&& perm.equals(((Triple) o).perm);
+        	}
+        	return false;
+        }
     }
-    public void next() throws IOException{
-    	buffer.clear();
-    	byte[] data=new byte[getPageSize()];
-    	RandomAccessFile raf=new RandomAccessFile(f, "r");
-    	raf.seek(currentId*getPageSize());
-    	for(int i=0;i<numPages;i++) {
-    		int id=currentId;
-    		currentId++;
-    		try {
-    			raf.read(data);
-    		}catch (Exception e) {
-    			break;
-			}
-    		buffer.add(new HeapPage(new HeapPageId(tableid,id), data));
+    enum PageStatus{
+    	NONE,ONE_READ,ONE_WRITE,MULTI_READ
+    }
+    class LockManager{
+	    private ConcurrentHashMap<TransactionId, ArrayList<Triple> > usedPageMap;
+	    private ConcurrentHashMap<PageId, ArrayList<Triple>> belongMap;
+    	public LockManager() {
+			usedPageMap=new ConcurrentHashMap<TransactionId, ArrayList<Triple>>();
+			belongMap=new ConcurrentHashMap<PageId, ArrayList<Triple>>();
+		}
+    	ArrayList<Triple> getByPid(PageId pid){
+    		ArrayList<Triple>arrayList=belongMap.get(pid);
+    		if(arrayList==null) 
+    			belongMap.put(pid,new ArrayList<Triple>());
+    		return belongMap.get(pid);
     	}
-    	raf.close();
-    }*/
+    	ArrayList<Triple> getByTid(TransactionId tid){
+    		ArrayList<Triple>arrayList=usedPageMap.get(tid);
+    		if(arrayList==null) 
+    			usedPageMap.put(tid,new ArrayList<Triple>());
+    		return usedPageMap.get(tid);
+    	}
+	    Triple getTriple(TransactionId tid,PageId pid) {
+	    	ArrayList<Triple>arrayList=getByPid(pid);
+	    	for(Triple triple:arrayList) {
+	    		if(triple.tid.equals(tid))
+	    			return triple;
+	    	}
+	    	return null;
+	    }
+	    void removeTriple(Triple triple) {
+	    	getByPid(triple.pid).remove(triple);
+	    	getByTid(triple.tid).remove(triple);
+	    }
+	    void updateTriple(Triple triple) {
+	    	removeTriple(new Triple(triple.tid, triple.pid, Permissions.READ_ONLY));
+	    	removeTriple(new Triple(triple.tid, triple.pid, Permissions.READ_WRITE));
+	    	getByPid(triple.pid).add(triple);
+	    	getByTid(triple.tid).add(triple);
+	    }
+	    PageStatus getPageStatus(PageId pid) {
+	    	ArrayList<Triple> arrayList=getByPid(pid);
+	    	if(arrayList.size()==1) {
+	    		if(arrayList.get(0).perm.equals(Permissions.READ_ONLY))
+	    			return PageStatus.ONE_READ;
+	    		return PageStatus.ONE_WRITE;
+	    	}
+	    	if(arrayList.size()>1) {
+	    		return PageStatus.MULTI_READ;
+	    	}
+	    	return PageStatus.NONE;
+	    }
+	    public synchronized boolean getLock(TransactionId tid,PageId pid,Permissions perm) {
+	    	//assume all READ_WRITE
+	    	
+	    	PageStatus pageStatus=getPageStatus(pid);
+	    	ArrayList<Triple> arrayList=getByPid(pid);
+	    	Triple triple=new Triple(tid, pid, perm);
+	    	if(pageStatus==PageStatus.NONE) {
+	    		updateTriple(triple);
+	    		return true;
+	    	}
+	    	if(pageStatus==PageStatus.ONE_READ) {
+	    		if(arrayList.get(0).tid.equals(tid)) {
+	    			updateTriple(triple);
+	    			return true;
+	    		}else {
+	    			if(perm.equals(Permissions.READ_WRITE))
+	    				return false;
+	    			updateTriple(triple);
+	    			return true;
+	    		}
+	    	}
+	    	if(pageStatus==PageStatus.ONE_WRITE) {
+	    		return arrayList.get(0).tid.equals(tid); 	
+	    	}
+	    	if(pageStatus==PageStatus.MULTI_READ) {
+	    		if(perm.equals(Permissions.READ_ONLY)) {
+	    			updateTriple(triple);
+	    			return true;
+	    		}else {
+	    			return false;
+	    		}
+	    	}
+	    	
+	    	return false;
+	    }
+    }
+    LockManager lockManager;
     public BufferPool(int numPages) {
         buffer=new LinkedHashMap<PageId, Page>();
         this.numPages=numPages;
         this.currentId=0;
+        this.lockManager=new LockManager();
     }
     
     public static int getPageSize() {
@@ -127,8 +217,17 @@ public class BufferPool {
     	}
     	
 	}
-    public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
+    public  synchronized Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
+    	
+    	while(!lockManager.getLock(tid, pid, perm)) {
+    		//transactionComplete(tid,false);
+    		try {
+				wait(10);
+			} catch (InterruptedException e) {
+			}
+    	}
+    	
         if(buffer.containsKey(pid))
         	return buffer.get(pid);
     	  Page page=Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
@@ -152,6 +251,7 @@ public class BufferPool {
     public  void releasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for lab1|lab2
+    	lockManager.removeTriple(new Triple(tid, pid, Permissions.READ_WRITE));
 
     }
 
@@ -160,6 +260,9 @@ public class BufferPool {
      *
      * @param tid the ID of the transaction requesting the unlock
      */
+    
+
+    
     public void transactionComplete(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
@@ -170,7 +273,8 @@ public class BufferPool {
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
         // not necessary for lab1|lab2
-return false;
+
+    	return lockManager.getTriple(tid, p)!=null;
     }
 
     /**
@@ -305,8 +409,15 @@ return false;
     private synchronized  void evictPage() throws DbException {
         if(buffer.isEmpty())
         	throw new DbException("evict");
+      Iterator<Page> iterator= buffer.values().iterator();
+      while(iterator.hasNext()) {
+    	  Page page=iterator.next();
+    	  if(page.isDirty()==null) {
+    		  discardPage(page.getId());
+    	  }
+      }
+  		throw new DbException("evict");
       
-      discardPage(buffer.values().iterator().next().getId());
     }
 
 }
