@@ -2,7 +2,6 @@ package simpledb;
 
 import java.util.*;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.*;
 

@@ -1,7 +1,5 @@
 package simpledb;
 
-import java.io.IOException;
-import java.util.NoSuchElementException;
 
 /**
  * Inserts tuples read from the child operator into the tableId specified in the

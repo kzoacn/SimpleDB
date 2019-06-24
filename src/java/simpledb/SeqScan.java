@@ -1,10 +1,9 @@
 package simpledb;
 
-import java.io.IOException;
 import java.util.*;
 
 import simpledb.HeapFile.HeapFileIterator;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 
 /**
  * SeqScan is an implementation of a sequential scan access method that reads

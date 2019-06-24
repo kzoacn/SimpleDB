@@ -2,7 +2,6 @@ package simpledb;
 
 import java.util.HashMap;
 
-import simpledb.Aggregator.Op;
 
 /**
  * Knows how to compute some aggregate over a set of StringFields.

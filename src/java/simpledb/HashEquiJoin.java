@@ -1,10 +1,7 @@
 package simpledb;
 
 import java.util.*;
-
-import sun.font.Type1Font;
-import sun.net.www.content.text.plain;
-
+import java.io.IOException;
 /**
  * The Join operator implements the relational join operation.
  */
@@ -103,6 +100,7 @@ public class HashEquiJoin extends Operator {
         // some code goes here
     	child1.rewind();
     	child2.rewind();
+    	
     	listIt=null;
     }
 

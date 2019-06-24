@@ -1,10 +1,8 @@
 package simpledb;
 
 import java.io.Serializable;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
-import simpledb.TupleDesc.TDItem;
 
 /**
  * TupleDesc describes the schema of a tuple.

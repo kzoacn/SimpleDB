@@ -1,6 +1,5 @@
 package simpledb;
 
-import java.io.IOException;
 
 /**
  * The delete operator. Delete reads tuples from its child operator and removes

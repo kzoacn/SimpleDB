@@ -1,9 +1,7 @@
 package simpledb;
 
-import java.util.*;
 import java.io.*;
 
-import simpledb.Predicate.Op;
 
 /**
  * Each instance of BTreeInternalPage stores data for one page of a BTreeFile and 

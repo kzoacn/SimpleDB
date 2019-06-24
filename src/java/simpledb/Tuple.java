@@ -2,10 +2,8 @@ package simpledb;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 
-import com.sun.xml.internal.ws.spi.db.FieldSetter;
 
 /**
  * Tuple maintains information about the contents of a tuple. Tuples have a

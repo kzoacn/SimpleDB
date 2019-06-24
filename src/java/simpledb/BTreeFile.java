@@ -2,7 +2,6 @@ package simpledb;
 
 import java.io.*;
 import java.util.*;
-import java.nio.channels.FileChannel;
 
 import simpledb.Predicate.Op;
 
