@@ -79,3 +79,79 @@ Memory pressure relief: Total: res = 25997312/25997312/0, res+swap = 19349504/19
 Memory pressure relief: Total: res = 25968640/25968640/0, res+swap = 19324928/19324928/0
 Memory pressure relief: Total: res = 25968640/25968640/0, res+swap = 19329024/19329024/0
 Memory pressure relief: Total: res = 26099712/25939968/-159744, res+swap = 19484672/19324928/-159744
+org.eclipse.m2e.logback.configuration: The org.eclipse.m2e.logback.configuration bundle was activated before the state location was initialized.  Will retry after the state location is initialized.
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.302: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.302: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.302: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.302: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.534: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.534: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.537: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.537: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.538: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.538: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.694: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.694: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.783: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.783: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.788: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.788: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.789: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.789: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.832: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.832: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.833: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.833: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.834: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.834: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.850: g_base64_encode_step: assertion 'in != NULL' failed
+
+(Eclipse:21688): GLib-CRITICAL **: 14:09:58.850: g_base64_encode_step: assertion 'in != NULL' failed
+org.eclipse.m2e.logback.configuration: Logback config file: /home/kzoacn/workspace/.metadata/.plugins/org.eclipse.m2e.logback.configuration/logback.1.11.0.20190220-2119.xml
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [bundleresource://465.fwk1944815218:1/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [bundleresource://465.fwk1944815218:2/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [ch.qos.logback.classic.util.ContextSelectorStaticBinder]
+org.eclipse.m2e.logback.configuration: Initializing logback
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -4 (allocation 2, extents 3x3) while allocating gadget (node progressbar, owner GtkProgressBar)
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -2 (allocation 0, extents 1x1) while allocating gadget (node trough, owner GtkProgressBar)
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -4 (allocation 2, extents 3x3) while allocating gadget (node progressbar, owner GtkProgressBar)
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -2 (allocation 0, extents 1x1) while allocating gadget (node trough, owner GtkProgressBar)
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -4 (allocation 2, extents 3x3) while allocating gadget (node progressbar, owner GtkProgressBar)
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -2 (allocation 0, extents 1x1) while allocating gadget (node trough, owner GtkProgressBar)
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -4 (allocation 2, extents 3x3) while allocating gadget (node progressbar, owner GtkProgressBar)
+
+(Eclipse:21688): Gtk-WARNING **: 14:10:16.722: Negative content width -2 (allocation 0, extents 1x1) while allocating gadget (node trough, owner GtkProgressBar)
